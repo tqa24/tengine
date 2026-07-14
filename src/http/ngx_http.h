@@ -135,6 +135,10 @@ ngx_int_t ngx_http_process_request_uri(ngx_http_request_t *r);
 ngx_int_t ngx_http_process_request_header(ngx_http_request_t *r);
 void ngx_http_process_request(ngx_http_request_t *r);
 void ngx_http_update_location_config(ngx_http_request_t *r);
+ngx_int_t ngx_http_set_virtual_server(ngx_http_request_t *r,
+    ngx_str_t *host);
+ngx_int_t ngx_http_validate_host(ngx_str_t *host, in_port_t *port,
+    ngx_pool_t *pool, ngx_uint_t alloc);
 void ngx_http_handler(ngx_http_request_t *r);
 void ngx_http_run_posted_requests(ngx_connection_t *c);
 ngx_int_t ngx_http_post_request(ngx_http_request_t *r,
@@ -196,6 +200,7 @@ extern ngx_str_t  ngx_http_html_default_types[];
 
 
 extern ngx_http_output_header_filter_pt  ngx_http_top_header_filter;
+extern ngx_http_output_header_filter_pt  ngx_http_top_early_hints_filter;
 extern ngx_http_output_body_filter_pt    ngx_http_top_body_filter;
 extern ngx_http_request_body_filter_pt   ngx_http_top_request_body_filter;
 
