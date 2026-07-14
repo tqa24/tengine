@@ -70,17 +70,13 @@ typedef struct {
     ngx_http_proxy_vars_t          vars;
 
     ngx_flag_t                     redirect;
-#if (T_NGX_SOCKET_BUFFER)
-    size_t                         sndbuf;
-    size_t                         rcvbuf;
-#endif
 
     ngx_uint_t                     http_version;
 
     ngx_uint_t                     headers_hash_max_size;
     ngx_uint_t                     headers_hash_bucket_size;
 
-#if (NGX_HTTP_SSL)
+#if (NGX_HTTP_SSL || NGX_COMPAT)
     ngx_uint_t                     ssl;
     ngx_uint_t                     ssl_protocols;
     ngx_str_t                      ssl_ciphers;
