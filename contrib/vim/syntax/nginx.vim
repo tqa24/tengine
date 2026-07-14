@@ -5,6 +5,9 @@ if exists("b:current_syntax")
   finish
 end
 
+let s:save_cpo = &cpo
+set cpo&vim
+
 " general syntax
 
 if has("patch-7.4.1142")
@@ -62,12 +65,12 @@ syn match ngxListenComment '#.*$'
     \ contained
     \ nextgroup=@ngxListenParams skipwhite skipempty
 syn keyword ngxListenOptions contained
-    \ default_server ssl http2 proxy_protocol
+    \ default_server ssl xquic proxy_protocol　multipath
     \ setfib fastopen backlog rcvbuf sndbuf accept_filter deferred bind
     \ ipv6only reuseport so_keepalive
     \ nextgroup=@ngxListenParams skipwhite skipempty
 syn keyword ngxListenOptionsDeprecated contained
-    \ spdy
+    \ http2
     \ nextgroup=@ngxListenParams skipwhite skipempty
 syn cluster ngxListenParams
     \ contains=ngxListenParam,ngxListenString,ngxListenComment
@@ -111,16 +114,11 @@ syn keyword ngxDirectiveError contained post_action
 syn keyword ngxDirectiveDeprecated contained limit_zone
 syn keyword ngxDirectiveDeprecated contained proxy_downstream_buffer
 syn keyword ngxDirectiveDeprecated contained proxy_upstream_buffer
-syn keyword ngxDirectiveDeprecated contained spdy_chunk_size
-syn keyword ngxDirectiveDeprecated contained spdy_headers_comp
-syn keyword ngxDirectiveDeprecated contained spdy_keepalive_timeout
-syn keyword ngxDirectiveDeprecated contained spdy_max_concurrent_streams
-syn keyword ngxDirectiveDeprecated contained spdy_pool_size
-syn keyword ngxDirectiveDeprecated contained spdy_recv_buffer_size
-syn keyword ngxDirectiveDeprecated contained spdy_recv_timeout
-syn keyword ngxDirectiveDeprecated contained spdy_streams_index_size
-syn keyword ngxDirectiveDeprecated contained ssl
-syn keyword ngxDirectiveDeprecated contained upstream_conf
+syn keyword ngxDirectiveDeprecated contained http2_idle_timeout
+syn keyword ngxDirectiveDeprecated contained http2_max_field_size
+syn keyword ngxDirectiveDeprecated contained http2_max_header_size
+syn keyword ngxDirectiveDeprecated contained http2_max_requests
+syn keyword ngxDirectiveDeprecated contained http2_recv_timeout
 
 syn keyword ngxDirective contained absolute_redirect
 syn keyword ngxDirective contained accept_mutex
@@ -141,6 +139,7 @@ syn keyword ngxDirective contained ancient_browser_value
 syn keyword ngxDirective contained api
 syn keyword ngxDirective contained auth_basic
 syn keyword ngxDirective contained auth_basic_user_file
+syn keyword ngxDirective contained auth_delay
 syn keyword ngxDirective contained auth_http
 syn keyword ngxDirective contained auth_http_header
 syn keyword ngxDirective contained auth_http_pass_client_cert
@@ -267,6 +266,7 @@ syn keyword ngxDirective contained grpc_socket_keepalive
 syn keyword ngxDirective contained grpc_ssl_certificate
 syn keyword ngxDirective contained grpc_ssl_certificate_key
 syn keyword ngxDirective contained grpc_ssl_ciphers
+syn keyword ngxDirective contained grpc_ssl_conf_command
 syn keyword ngxDirective contained grpc_ssl_crl
 syn keyword ngxDirective contained grpc_ssl_name
 syn keyword ngxDirective contained grpc_ssl_password_file
@@ -300,6 +300,7 @@ syn keyword ngxDirective contained hls_forward_args
 syn keyword ngxDirective contained hls_fragment
 syn keyword ngxDirective contained hls_mp4_buffer_size
 syn keyword ngxDirective contained hls_mp4_max_buffer_size
+syn keyword ngxDirective contained http2
 syn keyword ngxDirective contained http2_body_preread_size
 syn keyword ngxDirective contained http2_chunk_size
 syn keyword ngxDirective contained http2_idle_timeout

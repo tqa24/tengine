@@ -1,6 +1,7 @@
-Makefile
-objs/
-tags
+/Makefile
+/objs/
+/tmp/
+/tags
 
 # macOS metadata files
 .DS_Store
