@@ -1332,8 +1332,8 @@ ngx_http_ssl_certificate_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (max == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"ssl_certificate_cache\" must have the "
-                           "\"max\" parameter");
+                           "\"ssl_certificate_cache\" must have "
+                           "the \"max\" parameter");
         return NGX_CONF_ERROR;
     }
 
