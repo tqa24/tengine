@@ -128,6 +128,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       0,
       NULL },
 
+    { ngx_string("ssl_ech_file"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_array_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_ssl_srv_conf_t, ech_files),
+      NULL },
+
     { ngx_string("ssl_password_file"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
       ngx_http_ssl_password_file,
@@ -171,6 +178,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       offsetof(ngx_http_ssl_srv_conf_t, sign_certificate_key),
       NULL },
 #endif
+
+    { ngx_string("ssl_certificate_compression"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_ssl_srv_conf_t, certificate_compression),
+      NULL },
 
     { ngx_string("ssl_dhparam"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
@@ -1041,6 +1055,13 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 #endif
 
+    if (ngx_ssl_certificate_compression(cf, &conf->ssl,
+                                        conf->certificate_compression)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
     conf->ssl.buffer_size = conf->buffer_size;
 
     if (conf->verify) {
@@ -1346,26 +1367,6 @@ ngx_http_ssl_certificate_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
-static char *
-ngx_http_ssl_enable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ssl_srv_conf_t *sscf = conf;
-
-    char  *rv;
-
-    rv = ngx_conf_set_flag_slot(cf, cmd, conf);
-
-    if (rv != NGX_CONF_OK) {
-        return rv;
-    }
-
-    sscf->file = cf->conf_file->file.name.data;
-    sscf->line = cf->conf_file->line;
-
-    return NGX_CONF_OK;
-}
-
 #if (NGX_HTTP_SSL && NGX_SSL_ASYNC)
 static char *
 ngx_http_ssl_enable_async(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -1626,6 +1627,7 @@ static ngx_int_t
 ngx_http_ssl_init(ngx_conf_t *cf)
 {
     ngx_uint_t                   a, p, s;
+    const char                  *name;
     ngx_http_conf_addr_t        *addr;
     ngx_http_conf_port_t        *port;
     ngx_http_ssl_srv_conf_t     *sscf;

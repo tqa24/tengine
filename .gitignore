@@ -6,6 +6,9 @@
 # macOS metadata files
 .DS_Store
 
+# Editor / IDE files
+.vscode/
+
 # Test temporary files
 tests/nginx-tests/tengine-tests/ckeys.log
 tests/nginx-tests/tengine-tests/clog

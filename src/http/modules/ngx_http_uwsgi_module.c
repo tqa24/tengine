@@ -2767,7 +2767,7 @@ ngx_http_uwsgi_set_ssl(ngx_conf_t *cf, ngx_http_uwsgi_loc_conf_t *uwcf)
         }
 
         if (uwcf->upstream.ssl_certificate->lengths == NULL
-            || uwcf->upstream.ssl_certificate_key->lengths)
+            && uwcf->upstream.ssl_certificate_key->lengths == NULL)
         {
 #if (T_NGX_SSL_NTLS)
             if (ngx_ssl_certificate(cf, uwcf->upstream.ssl,
