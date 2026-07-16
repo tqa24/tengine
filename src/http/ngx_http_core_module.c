@@ -552,6 +552,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+    { ngx_string("keepalive_min_timeout"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, keepalive_min_timeout),
+      NULL },
+
     { ngx_string("keepalive_requests"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -722,6 +729,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, etag),
+      NULL },
+
+    { ngx_string("early_hints"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      ngx_http_set_predicate_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, early_hints),
       NULL },
 
     { ngx_string("error_page"),
@@ -1275,7 +1289,10 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
         if (rc == NGX_OK) {
             r->access_code = 0;
 
-            for (h = r->headers_out.www_authenticate; h; h = h->next) {
+            h = ngx_http_proxy_auth(r) ? r->headers_out.proxy_authenticate
+                                       : r->headers_out.www_authenticate;
+
+            for ( /* void */ ; h; h = h->next) {
                 h->hash = 0;
             }
 
@@ -1283,8 +1300,13 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
             return NGX_AGAIN;
         }
 
-        if (rc == NGX_HTTP_FORBIDDEN || rc == NGX_HTTP_UNAUTHORIZED) {
-            if (r->access_code != NGX_HTTP_UNAUTHORIZED) {
+        if (rc == NGX_HTTP_FORBIDDEN
+            || rc == NGX_HTTP_UNAUTHORIZED
+            || rc == NGX_HTTP_PROXY_AUTH_REQUIRED)
+        {
+            if (r->access_code != NGX_HTTP_UNAUTHORIZED
+                && r->access_code != NGX_HTTP_PROXY_AUTH_REQUIRED)
+            {
                 r->access_code = rc;
             }
 
@@ -1295,7 +1317,8 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     /* rc == NGX_ERROR || rc == NGX_HTTP_...  */
 
-    if (rc == NGX_HTTP_UNAUTHORIZED) {
+    if (rc == NGX_HTTP_UNAUTHORIZED || rc == NGX_HTTP_PROXY_AUTH_REQUIRED) {
+        r->access_code = rc;
         return ngx_http_core_auth_delay(r);
     }
 
@@ -1316,16 +1339,18 @@ ngx_http_core_post_access_phase(ngx_http_request_t *r,
     access_code = r->access_code;
 
     if (access_code) {
-        r->access_code = 0;
-
         if (access_code == NGX_HTTP_FORBIDDEN) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                           "access forbidden by rule");
         }
 
-        if (access_code == NGX_HTTP_UNAUTHORIZED) {
+        if (access_code == NGX_HTTP_UNAUTHORIZED
+            || access_code == NGX_HTTP_PROXY_AUTH_REQUIRED)
+        {
             return ngx_http_core_auth_delay(r);
         }
+
+        r->access_code = 0;
 
         ngx_http_finalize_request(r, access_code);
         return NGX_OK;
@@ -1339,12 +1364,16 @@ ngx_http_core_post_access_phase(ngx_http_request_t *r,
 static ngx_int_t
 ngx_http_core_auth_delay(ngx_http_request_t *r)
 {
+    ngx_int_t                  access_code;
     ngx_http_core_loc_conf_t  *clcf;
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (clcf->auth_delay == 0) {
-        ngx_http_finalize_request(r, NGX_HTTP_UNAUTHORIZED);
+        access_code = r->access_code;
+        r->access_code = 0;
+
+        ngx_http_finalize_request(r, access_code);
         return NGX_OK;
     }
 
@@ -1380,6 +1409,7 @@ ngx_http_core_auth_delay(ngx_http_request_t *r)
 static void
 ngx_http_core_auth_delay_handler(ngx_http_request_t *r)
 {
+    ngx_int_t     access_code;
     ngx_event_t  *wev;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -1396,7 +1426,10 @@ ngx_http_core_auth_delay_handler(ngx_http_request_t *r)
         return;
     }
 
-    ngx_http_finalize_request(r, NGX_HTTP_UNAUTHORIZED);
+    access_code = r->access_code;
+    r->access_code = 0;
+
+    ngx_http_finalize_request(r, access_code);
 }
 
 
@@ -2037,6 +2070,37 @@ ngx_http_send_header(ngx_http_request_t *r)
 
 
 ngx_int_t
+ngx_http_send_early_hints(ngx_http_request_t *r)
+{
+    ngx_int_t                  rc;
+    ngx_http_core_loc_conf_t  *clcf;
+
+    if (r->post_action) {
+        return NGX_OK;
+    }
+
+    if (r->header_sent) {
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      "header already sent");
+        return NGX_ERROR;
+    }
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    rc = ngx_http_test_predicates(r, clcf->early_hints);
+
+    if (rc != NGX_DECLINED) {
+        return rc;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http send early hints \"%V?%V\"", &r->uri, &r->args);
+
+    return ngx_http_top_early_hints_filter(r);
+}
+
+
+ngx_int_t
 ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
     ngx_int_t          rc;
@@ -2135,19 +2199,23 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 ngx_int_t
 ngx_http_auth_basic_user(ngx_http_request_t *r)
 {
-    ngx_str_t   auth, encoded;
-    ngx_uint_t  len;
+    ngx_str_t         auth, encoded;
+    ngx_uint_t        len;
+    ngx_table_elt_t  *h;
 
     if (r->headers_in.user.len == 0 && r->headers_in.user.data != NULL) {
         return NGX_DECLINED;
     }
 
-    if (r->headers_in.authorization == NULL) {
+    h = ngx_http_proxy_auth(r) ? r->headers_in.proxy_authorization
+                               : r->headers_in.authorization;
+
+    if (h == NULL) {
         r->headers_in.user.data = (u_char *) "";
         return NGX_DECLINED;
     }
 
-    encoded = r->headers_in.authorization->value;
+    encoded = h->value;
 
     if (encoded.len < sizeof("Basic ") - 1
         || ngx_strncasecmp(encoded.data, (u_char *) "Basic ",
@@ -2510,6 +2578,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     ngx_http_core_loc_conf_t      *clcf;
     struct timeval                 tv;
 #endif
+    ngx_http_posted_request_t     *posted;
     ngx_http_postponed_request_t  *pr, *p;
 
     if (r->subrequests == 0) {
@@ -2568,6 +2637,11 @@ ngx_http_subrequest(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
+    posted = ngx_palloc(r->pool, sizeof(ngx_http_posted_request_t));
+    if (posted == NULL) {
+        return NGX_ERROR;
+    }
+
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
     sr->main_conf = cscf->ctx->main_conf;
     sr->srv_conf = cscf->ctx->srv_conf;
@@ -2593,6 +2667,8 @@ ngx_http_subrequest(ngx_http_request_t *r,
 
     sr->method = NGX_HTTP_GET;
     sr->http_version = r->http_version;
+
+    sr->port = r->port;
 
     sr->request_line = r->request_line;
     sr->uri = *uri;
@@ -2633,10 +2709,6 @@ ngx_http_subrequest(ngx_http_request_t *r,
     }
 
     if (!sr->background) {
-        if (c->data == r && r->postponed == NULL) {
-            c->data = sr;
-        }
-
         pr = ngx_palloc(r->pool, sizeof(ngx_http_postponed_request_t));
         if (pr == NULL) {
             return NGX_ERROR;
@@ -2645,6 +2717,10 @@ ngx_http_subrequest(ngx_http_request_t *r,
         pr->request = sr;
         pr->out = NULL;
         pr->next = NULL;
+
+        if (c->data == r && r->postponed == NULL) {
+            c->data = sr;
+        }
 
         if (r->postponed) {
             for (p = r->postponed; p->next; p = p->next) { /* void */ }
@@ -2719,7 +2795,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
         ngx_http_update_location_config(sr);
     }
 
-    return ngx_http_post_request(sr, NULL);
+    return ngx_http_post_request(sr, posted);
 }
 
 
@@ -3233,6 +3309,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         lsopt.socklen = sizeof(struct sockaddr_in);
 
         lsopt.backlog = NGX_LISTEN_BACKLOG;
+        lsopt.type = SOCK_STREAM;
         lsopt.rcvbuf = -1;
         lsopt.sndbuf = -1;
 #if (NGX_HAVE_SETFIB)
@@ -3845,6 +3922,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->keepalive_time = NGX_CONF_UNSET_MSEC;
     clcf->keepalive_timeout = NGX_CONF_UNSET_MSEC;
     clcf->keepalive_header = NGX_CONF_UNSET;
+    clcf->keepalive_min_timeout = NGX_CONF_UNSET_MSEC;
     clcf->keepalive_requests = NGX_CONF_UNSET_UINT;
     clcf->lingering_close = NGX_CONF_UNSET_UINT;
     clcf->lingering_time = NGX_CONF_UNSET_MSEC;
@@ -3868,6 +3946,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
 #endif
     clcf->etag = NGX_CONF_UNSET;
     clcf->server_tokens = NGX_CONF_UNSET_UINT;
+    clcf->early_hints = NGX_CONF_UNSET_PTR;
     clcf->types_hash_max_size = NGX_CONF_UNSET_UINT;
     clcf->types_hash_bucket_size = NGX_CONF_UNSET_UINT;
 
@@ -4157,6 +4236,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->keepalive_timeout, 75000);
     ngx_conf_merge_sec_value(conf->keepalive_header,
                               prev->keepalive_header, 0);
+    ngx_conf_merge_msec_value(conf->keepalive_min_timeout,
+                              prev->keepalive_min_timeout, 0);
     ngx_conf_merge_uint_value(conf->keepalive_requests,
                               prev->keepalive_requests, 1000);
     ngx_conf_merge_uint_value(conf->lingering_close,
@@ -4193,7 +4274,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     if (ngx_conf_merge_path_value(cf, &conf->client_body_temp_path,
                               prev->client_body_temp_path,
                               &ngx_http_client_temp_path)
-        != NGX_OK)
+        != NGX_CONF_OK)
     {
         return NGX_CONF_ERROR;
     }
@@ -4229,6 +4310,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_uint_value(conf->server_tokens, prev->server_tokens,
                               NGX_HTTP_SERVER_TOKENS_ON);
+
+    ngx_conf_merge_ptr_value(conf->early_hints, prev->early_hints, NULL);
 
     ngx_conf_merge_ptr_value(conf->open_file_cache,
                               prev->open_file_cache, NULL);
@@ -4290,7 +4373,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_str_t              *value, size;
     ngx_url_t               u;
-    ngx_uint_t              n, i;
+    ngx_uint_t              n, i, backlog;
     ngx_http_listen_opt_t   lsopt;
 
     cscf->listen = 1;
@@ -4316,6 +4399,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
 
     lsopt.backlog = NGX_LISTEN_BACKLOG;
+    lsopt.type = SOCK_STREAM;
     lsopt.rcvbuf = -1;
     lsopt.sndbuf = -1;
 #if (NGX_HAVE_SETFIB)
@@ -4327,6 +4411,8 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_HAVE_INET6)
     lsopt.ipv6only = 1;
 #endif
+
+    backlog = 0;
 
     for (n = 2; n < cf->args->nelts; n++) {
 
@@ -4385,6 +4471,8 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                    "invalid backlog \"%V\"", &value[n]);
                 return NGX_CONF_ERROR;
             }
+
+            backlog = 1;
 
             continue;
         }
@@ -4514,6 +4602,19 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
         }
 
+        if (ngx_strcmp(value[n].data, "multipath") == 0) {
+#ifdef IPPROTO_MPTCP
+            lsopt.protocol = IPPROTO_MPTCP;
+            lsopt.set = 1;
+            lsopt.bind = 1;
+#else
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "multipath is not supported "
+                               "on this platform, ignored");
+#endif
+            continue;
+        }
+
         if (ngx_strcmp(value[n].data, "ssl") == 0) {
 #if (NGX_HTTP_SSL)
             lsopt.ssl = 1;
@@ -4528,6 +4629,11 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         if (ngx_strcmp(value[n].data, "http2") == 0) {
 #if (NGX_HTTP_V2)
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
+                               "the \"listen ... http2\" directive "
+                               "is deprecated, use "
+                               "the \"http2\" directive instead");
+
             lsopt.http2 = 1;
             continue;
 #else

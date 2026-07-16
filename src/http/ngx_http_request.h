@@ -97,6 +97,7 @@
 #define NGX_HTTP_FORBIDDEN                 403
 #define NGX_HTTP_NOT_FOUND                 404
 #define NGX_HTTP_NOT_ALLOWED               405
+#define NGX_HTTP_PROXY_AUTH_REQUIRED       407
 #define NGX_HTTP_REQUEST_TIME_OUT          408
 #define NGX_HTTP_CONFLICT                  409
 #define NGX_HTTP_LENGTH_REQUIRED           411
@@ -105,7 +106,10 @@
 #define NGX_HTTP_REQUEST_URI_TOO_LARGE     414
 #define NGX_HTTP_UNSUPPORTED_MEDIA_TYPE    415
 #define NGX_HTTP_RANGE_NOT_SATISFIABLE     416
+#if (T_NGX_XQUIC)
+/* refuse HTTP/3 stream when the request is limited */
 #define NGX_HTTP_REQUEST_LIMITED           420
+#endif
 #define NGX_HTTP_MISDIRECTED_REQUEST       421
 #define NGX_HTTP_TOO_MANY_REQUESTS         429
 
@@ -214,6 +218,7 @@ typedef struct {
 #endif
 
     ngx_table_elt_t                  *authorization;
+    ngx_table_elt_t                  *proxy_authorization;
 
     ngx_table_elt_t                  *keep_alive;
 
@@ -277,6 +282,7 @@ typedef struct {
     ngx_table_elt_t                  *content_range;
     ngx_table_elt_t                  *accept_ranges;
     ngx_table_elt_t                  *www_authenticate;
+    ngx_table_elt_t                  *proxy_authenticate;
     ngx_table_elt_t                  *expires;
     ngx_table_elt_t                  *etag;
 
@@ -333,6 +339,8 @@ typedef struct {
     ngx_int_t                         nbusy;
 
     ngx_chain_t                      *free;
+
+    ngx_msec_t                        keepalive_timeout;
 
     unsigned                          ssl:1;
     unsigned                          proxy_protocol:1;
@@ -579,10 +587,12 @@ struct ngx_http_request_s {
     unsigned                          request_complete:1;
     unsigned                          request_output:1;
     unsigned                          header_sent:1;
+    unsigned                          response_sent:1;
     unsigned                          expect_tested:1;
     unsigned                          root_tested:1;
     unsigned                          done:1;
     unsigned                          logged:1;
+    unsigned                          terminated:1;
 
     unsigned                          buffered:4;
 
@@ -650,7 +660,9 @@ typedef struct {
 } ngx_http_ephemeral_t;
 
 
-#define ngx_http_ephemeral(r)  (void *) (&r->uri_start)
+#define ngx_http_ephemeral(r)   (void *) (&r->uri_start)
+
+#define ngx_http_proxy_auth(r)  ((r)->method == NGX_HTTP_CONNECT)
 
 
 extern ngx_http_header_t       ngx_http_headers_in[];

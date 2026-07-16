@@ -1221,9 +1221,13 @@ ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
     port = cmcf->ports->elts;
     for (i = 0; i < cmcf->ports->nelts; i++) {
 
-        if (p != port[i].port || sa->sa_family != port[i].family) {
+        if (p != port[i].port
+            || lsopt->type != port[i].type
+            || sa->sa_family != port[i].family)
+        {
             continue;
         }
+
 
 #if (T_NGX_XQUIC)
         if ((port[i].udp && !lsopt->xquic) || (!port[i].udp && lsopt->xquic)) {
@@ -1268,6 +1272,7 @@ ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
     }
 
     port->family = sa->sa_family;
+    port->type = lsopt->type;
     port->port = p;
     port->addrs.elts = NULL;
 #if (T_NGX_XQUIC)
@@ -1941,6 +1946,8 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
     }
 #endif
 
+    ls->type = addr->opt.type;
+    ls->protocol = addr->opt.protocol;
     ls->backlog = addr->opt.backlog;
     ls->rcvbuf = addr->opt.rcvbuf;
     ls->sndbuf = addr->opt.sndbuf;
@@ -1976,11 +1983,12 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
     ls->reuseport = addr->opt.reuseport;
 #endif
 
+    ls->wildcard = addr->opt.wildcard;
+
 #if (T_NGX_XQUIC)
     ls->xquic = addr->opt.xquic;
     if (ls->xquic) {
         ls->type = SOCK_DGRAM;
-        ls->wildcard = addr->opt.wildcard;
     }
 #endif
 #if (T_NGX_HAVE_XUDP)
@@ -1998,6 +2006,7 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
         ls->xudp = 1;
     }
 #endif
+
     return ls;
 }
 
