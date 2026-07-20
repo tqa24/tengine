@@ -84,6 +84,7 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #include <ngx_crc.h>
 #include <ngx_crc32.h>
 #include <ngx_murmurhash.h>
+#include <ngx_siphash.h>
 #if (NGX_PCRE)
 #include <ngx_regex.h>
 #endif
@@ -113,6 +114,9 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #endif
 #if (NGX_PROCS)
 #include <ngx_proc.h>
+#endif
+#if (NGX_HAVE_BPF)
+#include <ngx_bpf.h>
 #endif
 
 

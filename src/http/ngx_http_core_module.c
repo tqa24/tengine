@@ -4373,7 +4373,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_str_t              *value, size;
     ngx_url_t               u;
-    ngx_uint_t              n, i, backlog;
+    ngx_uint_t              n, i;
     ngx_http_listen_opt_t   lsopt;
 
     cscf->listen = 1;
@@ -4411,8 +4411,6 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_HAVE_INET6)
     lsopt.ipv6only = 1;
 #endif
-
-    backlog = 0;
 
     for (n = 2; n < cf->args->nelts; n++) {
 
@@ -4471,8 +4469,6 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                    "invalid backlog \"%V\"", &value[n]);
                 return NGX_CONF_ERROR;
             }
-
-            backlog = 1;
 
             continue;
         }

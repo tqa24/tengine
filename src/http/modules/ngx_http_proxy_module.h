@@ -85,6 +85,11 @@ typedef struct {
     ngx_str_t                      ssl_crl;
     ngx_array_t                   *ssl_conf_commands;
 #endif
+
+#if (T_NGX_SOCKET_BUFFER)
+    size_t                         sndbuf;
+    size_t                         rcvbuf;
+#endif
 } ngx_http_proxy_loc_conf_t;
 
 

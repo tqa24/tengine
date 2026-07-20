@@ -65,7 +65,7 @@ syn match ngxListenComment '#.*$'
     \ contained
     \ nextgroup=@ngxListenParams skipwhite skipempty
 syn keyword ngxListenOptions contained
-    \ default_server ssl xquic proxy_protocol　multipath
+    \ default_server ssl xquic proxy_protocol multipath
     \ setfib fastopen backlog rcvbuf sndbuf accept_filter deferred bind
     \ ipv6only reuseport so_keepalive
     \ nextgroup=@ngxListenParams skipwhite skipempty
@@ -340,6 +340,7 @@ syn keyword ngxDirective contained js_set
 syn keyword ngxDirective contained keepalive
 syn keyword ngxDirective contained keepalive_disable
 syn keyword ngxDirective contained keepalive_requests
+syn keyword ngxDirective contained keepalive_time
 syn keyword ngxDirective contained keepalive_timeout
 syn keyword ngxDirective contained keyval
 syn keyword ngxDirective contained keyval_zone
@@ -349,6 +350,7 @@ syn keyword ngxDirective contained large_client_header_buffers
 syn keyword ngxDirective contained least_conn
 syn keyword ngxDirective contained least_time
 syn keyword ngxDirective contained limit_conn
+syn keyword ngxDirective contained limit_conn_dry_run
 syn keyword ngxDirective contained limit_conn_log_level
 syn keyword ngxDirective contained limit_conn_status
 syn keyword ngxDirective contained limit_conn_zone
@@ -370,6 +372,7 @@ syn keyword ngxDirective contained log_subrequest
 syn keyword ngxDirective contained map_hash_bucket_size
 syn keyword ngxDirective contained map_hash_max_size
 syn keyword ngxDirective contained master_process
+syn keyword ngxDirective contained max_errors
 syn keyword ngxDirective contained max_ranges
 syn keyword ngxDirective contained memcached_bind
 syn keyword ngxDirective contained memcached_buffer_size
@@ -393,6 +396,7 @@ syn keyword ngxDirective contained mp4_buffer_size
 syn keyword ngxDirective contained mp4_limit_rate
 syn keyword ngxDirective contained mp4_limit_rate_after
 syn keyword ngxDirective contained mp4_max_buffer_size
+syn keyword ngxDirective contained mp4_start_key_frame
 syn keyword ngxDirective contained msie_padding
 syn keyword ngxDirective contained msie_refresh
 syn keyword ngxDirective contained multi_accept
@@ -445,9 +449,11 @@ syn keyword ngxDirective contained proxy_cache_use_stale
 syn keyword ngxDirective contained proxy_cache_valid
 syn keyword ngxDirective contained proxy_connect_timeout
 syn keyword ngxDirective contained proxy_cookie_domain
+syn keyword ngxDirective contained proxy_cookie_flags
 syn keyword ngxDirective contained proxy_cookie_path
 syn keyword ngxDirective contained proxy_download_rate
 syn keyword ngxDirective contained proxy_force_ranges
+syn keyword ngxDirective contained proxy_half_close
 syn keyword ngxDirective contained proxy_headers_hash_bucket_size
 syn keyword ngxDirective contained proxy_headers_hash_max_size
 syn keyword ngxDirective contained proxy_hide_header
@@ -478,11 +484,13 @@ syn keyword ngxDirective contained proxy_send_timeout
 syn keyword ngxDirective contained proxy_session_drop
 syn keyword ngxDirective contained proxy_set_body
 syn keyword ngxDirective contained proxy_set_header
+syn keyword ngxDirective contained proxy_smtp_auth
 syn keyword ngxDirective contained proxy_socket_keepalive
 syn keyword ngxDirective contained proxy_ssl
 syn keyword ngxDirective contained proxy_ssl_certificate
 syn keyword ngxDirective contained proxy_ssl_certificate_key
 syn keyword ngxDirective contained proxy_ssl_ciphers
+syn keyword ngxDirective contained proxy_ssl_conf_command
 syn keyword ngxDirective contained proxy_ssl_crl
 syn keyword ngxDirective contained proxy_ssl_name
 syn keyword ngxDirective contained proxy_ssl_password_file
@@ -585,21 +593,27 @@ syn keyword ngxDirective contained ssi_min_file_chunk
 syn keyword ngxDirective contained ssi_silent_errors
 syn keyword ngxDirective contained ssi_types
 syn keyword ngxDirective contained ssi_value_length
+syn keyword ngxDirective contained ssl_alpn
 syn keyword ngxDirective contained ssl_buffer_size
 syn keyword ngxDirective contained ssl_certificate
 syn keyword ngxDirective contained ssl_certificate_key
 syn keyword ngxDirective contained ssl_ciphers
 syn keyword ngxDirective contained ssl_client_certificate
+syn keyword ngxDirective contained ssl_conf_command
 syn keyword ngxDirective contained ssl_crl
 syn keyword ngxDirective contained ssl_dhparam
 syn keyword ngxDirective contained ssl_early_data
 syn keyword ngxDirective contained ssl_ecdh_curve
 syn keyword ngxDirective contained ssl_engine
 syn keyword ngxDirective contained ssl_handshake_timeout
+syn keyword ngxDirective contained ssl_ocsp
+syn keyword ngxDirective contained ssl_ocsp_cache
+syn keyword ngxDirective contained ssl_ocsp_responder
 syn keyword ngxDirective contained ssl_password_file
 syn keyword ngxDirective contained ssl_prefer_server_ciphers
 syn keyword ngxDirective contained ssl_preread
 syn keyword ngxDirective contained ssl_protocols
+syn keyword ngxDirective contained ssl_reject_handshake
 syn keyword ngxDirective contained ssl_session_cache
 syn keyword ngxDirective contained ssl_session_ticket_key
 syn keyword ngxDirective contained ssl_session_tickets
@@ -638,6 +652,7 @@ syn keyword ngxDirective contained user
 syn keyword ngxDirective contained userid
 syn keyword ngxDirective contained userid_domain
 syn keyword ngxDirective contained userid_expires
+syn keyword ngxDirective contained userid_flags
 syn keyword ngxDirective contained userid_mark
 syn keyword ngxDirective contained userid_name
 syn keyword ngxDirective contained userid_p3p
@@ -688,6 +703,7 @@ syn keyword ngxDirective contained uwsgi_socket_keepalive
 syn keyword ngxDirective contained uwsgi_ssl_certificate
 syn keyword ngxDirective contained uwsgi_ssl_certificate_key
 syn keyword ngxDirective contained uwsgi_ssl_ciphers
+syn keyword ngxDirective contained uwsgi_ssl_conf_command
 syn keyword ngxDirective contained uwsgi_ssl_crl
 syn keyword ngxDirective contained uwsgi_ssl_name
 syn keyword ngxDirective contained uwsgi_ssl_password_file
