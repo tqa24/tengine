@@ -63,7 +63,7 @@ struct ngx_http_upstream_rr_peer_s {
 #endif
 
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE)
-    ngx_str_t                       host;
+    ngx_str_t                       dyn_resolve_host;
 #endif
 
     ngx_int_t                       current_weight;

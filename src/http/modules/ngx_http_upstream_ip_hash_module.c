@@ -280,7 +280,7 @@ found:
 #endif
 
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE) 
-    pc->host = &peer->host;
+    pc->dyn_resolve_host = &peer->dyn_resolve_host;
 #endif
     peer->conns++;
 

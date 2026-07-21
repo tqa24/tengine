@@ -40,7 +40,7 @@ struct ngx_peer_connection_s {
     socklen_t                        socklen;
     ngx_str_t                       *name;
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE)    
-    ngx_str_t                       *host;
+    ngx_str_t                       *dyn_resolve_host;
 #endif
 
     ngx_uint_t                       tries;
@@ -60,16 +60,13 @@ struct ngx_peer_connection_s {
 
     int                              type;
     int                              rcvbuf;
+    int                              sndbuf;
 
     ngx_log_t                       *log;
 
 #if (NGX_HTTP_UPSTREAM_SID || NGX_COMPAT)
     ngx_str_t                       *hint;
     ngx_str_t                       *sid;
-#endif
-
-#if (T_NGX_SOCKET_BUFFER)
-    int                              sndbuf;
 #endif
 
     unsigned                         cached:1;

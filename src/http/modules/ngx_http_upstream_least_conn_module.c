@@ -289,7 +289,7 @@ best_chosen:
 #endif
 
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE) 
-    pc->host = &best->host;
+    pc->dyn_resolve_host = &best->dyn_resolve_host;
 #endif
 
     best->conns++;
