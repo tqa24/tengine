@@ -689,7 +689,17 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf,
         addr = port[p].addrs.elts;
         for (a = 0; a < port[p].addrs.nelts; a++) {
 
-            if (addr[a].servers.nelts > 1
+            if (
+#if (T_NGX_STREAM_SNI)
+                /*
+                 * Tengine always builds the server_names hash so SNI matching
+                 * (and "ssl_sni_force") works even for a single-server address;
+                 * nginx skips it when there is only one server per address.
+                 */
+                addr[a].servers.nelts >= 1
+#else
+                addr[a].servers.nelts > 1
+#endif
 #if (NGX_PCRE)
                 || addr[a].default_server->captures
 #endif
