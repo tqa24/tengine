@@ -1035,7 +1035,12 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     for (i = 2; i < cf->args->nelts; i++) {
 
-        if (ngx_strcmp(value[i].data, "default_server") == 0) {
+        if (ngx_strcmp(value[i].data, "default_server") == 0
+#if (T_NGX_STREAM_SNI)
+            || ngx_strcmp(value[i].data, "default") == 0
+#endif
+           )
+        {
             lsopt.default_server = 1;
             continue;
         }

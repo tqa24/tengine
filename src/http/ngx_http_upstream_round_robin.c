@@ -237,7 +237,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 peer[n].down = server[i].down;
                 peer[n].server = server[i].name;
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE)
-                peer[n].dyn_resolve_host = server[i].host;
+                peer[n].dyn_resolve_host = server[i].dyn_resolve_host;
 #endif
 
 #if (NGX_HTTP_UPSTREAM_CHECK)
@@ -397,7 +397,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 peer[n].fail_timeout = server[i].fail_timeout;
                 peer[n].down = server[i].down;
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE)
-                peer[n].dyn_resolve_host = server[i].host;
+                peer[n].dyn_resolve_host = server[i].dyn_resolve_host;
 #endif
                 peer[n].server = server[i].name;
                 *peerp = &peer[n];

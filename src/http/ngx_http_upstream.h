@@ -124,8 +124,18 @@ typedef struct {
 #if (NGX_HTTP_UPSTREAM_ZONE)
     ngx_str_t                        host;
     ngx_str_t                        service;
-#elif (T_NGX_HTTP_DYNAMIC_RESOLVE)
-    ngx_str_t                        host;
+#endif
+
+#if (T_NGX_HTTP_DYNAMIC_RESOLVE)
+    /*
+     * Tengine dynamic resolve keeps its own per-server host separate from the
+     * nginx "host" field above: nginx sets "host" only for servers using the
+     * "resolve" parameter (zone-based run-time resolving), whereas Tengine
+     * records the host of every server so ngx_http_upstream_dynamic_module can
+     * re-resolve it at run time. Sharing the field made nginx treat every
+     * server as zone-resolved and reject upstreams not in shared memory.
+     */
+    ngx_str_t                        dyn_resolve_host;
 #endif
 
 #if (NGX_HTTP_UPSTREAM_SID || NGX_COMPAT)

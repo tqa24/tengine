@@ -7031,7 +7031,7 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
 
 #if (T_NGX_HTTP_DYNAMIC_RESOLVE)
-    us->host = u.host;
+    us->dyn_resolve_host = u.host;
 #endif
 
     return NGX_CONF_OK;
