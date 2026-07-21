@@ -2586,7 +2586,9 @@ ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
 static ngx_int_t
 ngx_http_process_request_header(ngx_http_request_t *r)
 {
+#if !(NGX_HTTP_PROXY_CONNECT)
     ngx_http_core_srv_conf_t  *cscf;
+#endif
 
     if (r->headers_in.server.len == 0
         && ngx_http_set_virtual_server(r, &r->headers_in.server)
