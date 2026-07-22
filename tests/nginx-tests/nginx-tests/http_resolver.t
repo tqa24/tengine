@@ -31,6 +31,7 @@ $t->write_file_expand('nginx.conf', <<'EOF');
 %%TEST_GLOBALS%%
 
 daemon off;
+worker_processes 1;  # NOTE: The default value of Tengine worker_processes directive is `worker_processes auto;`.
 
 events {
 }
@@ -254,7 +255,14 @@ sleep 2;
 like(http_host_header('cname-a-ttl2.example.net', '/'), qr/502 Bad/,
 	'CNAME + A with expired CNAME ttl');
 
+SKIP: {
+skip 'Tengine dyn_resolve intentionally falls back to system DNS '
+	. '(/etc/resolv.conf) when no resolver is configured, so this '
+	. 'request is resolved instead of returning 502', 1;
+
 like(http_host_header('example.net', '/invalid'), qr/502 Bad/, 'no resolver');
+
+}
 
 like(http_end($s), qr/200 OK/, 'resend after malformed response');
 like(http_end($fe), qr/200 OK/, 'resend after format error');
