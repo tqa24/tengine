@@ -907,6 +907,20 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 #if defined(T_INGRESS_SHARED_MEMORY_PB) && OPENSSL_VERSION_NUMBER >= 0x10101000L
     SSL_CTX_set_client_hello_cb(conf->ssl.ctx,
                                 ngx_http_ssl_client_hello_callback, NULL);
+#else
+    {
+    /*
+     * select the virtual server (and apply its ssl_protocols) during the
+     * early ClientHello callback, before protocol version negotiation; on
+     * older OpenSSL without ClientHello callback support this is a no-op
+     * and the servername callback below remains the fallback
+     */
+    static ngx_ssl_client_hello_arg  cb = { ngx_http_ssl_servername };
+
+    if (ngx_ssl_set_client_hello_callback(&conf->ssl, &cb) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+    }
 #endif
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
