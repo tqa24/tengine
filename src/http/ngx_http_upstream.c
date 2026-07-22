@@ -7883,11 +7883,13 @@ ngx_http_upstream_init_process(ngx_cycle_t *cycle)
             continue;
         }
 
-        peers->init_number = ngx_random() % peers->number;
+        peers->init_number = peers->number
+                             ? ngx_random() % peers->number : 0;
 
         backup = peers->next;
         if (backup) {
-            backup->init_number = ngx_random() % backup->number;
+            backup->init_number = backup->number
+                                  ? ngx_random() % backup->number : 0;
         }
     }
 
