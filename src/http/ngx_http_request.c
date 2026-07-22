@@ -1156,24 +1156,42 @@ ngx_http_ssl_ctx_reset(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 
+    if (arg != NULL) {
+
+        /*
+         * during the ClientHello callback SSL_get_servername() is not yet
+         * usable, so the server name parsed from the ClientHello is passed
+         * in explicitly; this selects the virtual server (and applies its
+         * ssl_protocols) before protocol version negotiation
+         */
+
+        host = *(ngx_str_t *) arg;
+
+        if (host.data == NULL || host.len == 0) {
+            return SSL_TLSEXT_ERR_OK;
+        }
+
+    } else {
+
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-    servername = SSL_get_servername(ssl_conn, TLSEXT_NAMETYPE_host_name);
+        servername = SSL_get_servername(ssl_conn, TLSEXT_NAMETYPE_host_name);
 #endif
 
-    if (servername == NULL) {
-        return SSL_TLSEXT_ERR_OK;
+        if (servername == NULL) {
+            return SSL_TLSEXT_ERR_OK;
+        }
+
+        host.len = ngx_strlen(servername);
+
+        if (host.len == 0) {
+            return SSL_TLSEXT_ERR_OK;
+        }
+
+        host.data = (u_char *) servername;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "SSL server name: \"%s\"", servername);
-
-    host.len = ngx_strlen(servername);
-
-    if (host.len == 0) {
-        return SSL_TLSEXT_ERR_OK;
-    }
-
-    host.data = (u_char *) servername;
+                   "SSL server name: \"%V\"", &host);
 
     rc = ngx_http_validate_host(&host, NULL, c->pool, 1);
 
@@ -1306,6 +1324,7 @@ ngx_http_ssl_client_hello_callback(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
     ngx_uint_t                 i = 0;
     unsigned int               legacy_version = 0;
     ngx_str_t                  ssl_protocols = ngx_null_string;
+    ngx_str_t                  sni = ngx_null_string;
     char                      *ssl_proto;
     char                       ssl_protos[4 * NGX_HTTPS_SSL_PROTOCOL_NUM];
     unsigned int               protos[NGX_HTTPS_SSL_PROTOCOL_NUM];
@@ -1372,6 +1391,9 @@ ngx_http_ssl_client_hello_callback(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
     }
 
     ngx_memcpy(servername, p, len);
+
+    sni.data = servername;
+    sni.len = len;
 
     if (!SSL_set_tlsext_host_name(ssl_conn, servername)) {
         return SSL_CLIENT_HELLO_ERROR;
@@ -1472,7 +1494,7 @@ proto_next:
     ngx_http_free_request(r, 0);
     c->destroyed = 0;
 
-    ret = ngx_http_ssl_ctx_reset(ssl_conn, ad, arg);
+    ret = ngx_http_ssl_ctx_reset(ssl_conn, ad, sni.len ? (void *) &sni : arg);
 
     if (ret == SSL_TLSEXT_ERR_OK || ret == SSL_TLSEXT_ERR_NOACK) {
 recover:
