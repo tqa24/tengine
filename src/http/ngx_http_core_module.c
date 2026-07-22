@@ -1082,6 +1082,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
     if (r->main == r && r->http_connection->ssl) {
         long                      rc;
         X509                     *cert;
+        const char               *s;
         ngx_http_ssl_srv_conf_t  *sscf;
         ngx_http_ssl_loc_conf_t  *slcf;
 
@@ -1127,6 +1128,17 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
                 }
 
                 X509_free(cert);
+            }
+
+            if (ngx_ssl_ocsp_get_status(c, &s) != NGX_OK) {
+                ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                              "client SSL certificate verify error: %s", s);
+
+                ngx_ssl_remove_cached_session(c->ssl->session_ctx,
+                                       (SSL_get0_session(c->ssl->connection)));
+
+                ngx_http_finalize_request(r, NGX_HTTPS_CERT_ERROR);
+                return NGX_OK;
             }
         }
     }
