@@ -4391,6 +4391,16 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_uint_t              n, i;
     ngx_http_listen_opt_t   lsopt;
 
+    /*
+     * T_NGX_XQUIC: the native "quic" listen parameter and its incompatibility
+     * checks are intentionally omitted in Tengine. Upstream nginx declares an
+     * extra local "backlog" flag here and, inside an "if (lsopt.quic) {...}"
+     * block, rejects backlog=/fastopen=/accept_filter=/so_keepalive= combined
+     * with quic. Tengine uses xquic for HTTP/3 and never defines NGX_HTTP_V3
+     * (nor lsopt.quic), so that whole block is dropped. Do NOT merge upstream's
+     * quic/backlog listen block when syncing nginx core.
+     */
+
     cscf->listen = 1;
 
     value = cf->args->elts;
