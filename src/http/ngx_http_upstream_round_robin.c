@@ -669,7 +669,12 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
     peers->number = ur->naddrs;
     peers->tries = ur->naddrs;
 #if (T_NGX_HTTP_UPSTREAM_RANDOM)
-    peers->init_number = NGX_CONF_UNSET_UINT;
+    /*
+     * Resolved addresses keep the order provided by the resolver, so the
+     * start peer is fixed rather than randomized. Only configured upstream
+     * server groups use the random start peer for load balancing.
+     */
+    peers->init_number = 0;
 #endif
     peers->name = &ur->host;
 
