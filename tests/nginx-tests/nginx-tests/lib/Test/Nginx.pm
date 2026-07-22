@@ -162,7 +162,7 @@ sub has_module($) {
 		upstream_random
 			=> '(?s)^(?!.*--without-http_upstream_random_module)',
 		upstream_keepalive
-			=> '(?s)^(?!.*--without-http_upstream_keepalive_modu)',
+			=> '(?s)(?:--add-module=\S*ngx_http_upstream_keepalive_module|^(?!.*--without-http_upstream_keepalive_modu))',
 		upstream_zone
 			=> '(?s)^(?!.*--without-http_upstream_zone_module)',
 		upstream_sticky
