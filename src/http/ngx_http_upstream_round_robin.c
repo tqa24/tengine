@@ -400,8 +400,6 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 peer[n].dyn_resolve_host = server[i].dyn_resolve_host;
 #endif
                 peer[n].server = server[i].name;
-                *peerp = &peer[n];
-                peerp = &peer[n].next;
 #if (NGX_HTTP_UPSTREAM_CHECK)
                 if (!server[i].down) {
                     peer[n].check_index =
