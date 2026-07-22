@@ -165,10 +165,13 @@ sub status {
 	my ($url) = @_;
 	my $r = http_get($url);
 
+	# Tengine (T_NGX_HTTP_STUB_STATUS) appends a "request_time" column to the
+	# header line and a matching 4th value; keep both optional to stay
+	# compatible with stock nginx output.
 	$r =~ /
 		Active\ connections:\ +(\d+)
-		\s+server\ accepts\ handled\ requests
-		\s+(\d+)\ +(\d+)\ +(\d+)
+		\s+server\ accepts\ handled\ requests(?:\ request_time)?
+		\s+(\d+)\ +(\d+)\ +(\d+)(?:\ +\d+)?
 		\s+Reading:\ +(\d+)
 		\s+Writing:\ +(\d+)
 		\s+Waiting:\ +(\d+)
