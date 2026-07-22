@@ -135,6 +135,9 @@ ngx_int_t ngx_http_header_out(ngx_http_request_t *r, u_char *name, size_t len,
 
 ngx_http_request_t *ngx_http_create_request(ngx_connection_t *c);
 ngx_int_t ngx_http_process_request_uri(ngx_http_request_t *r);
+#if (T_NGX_XQUIC)
+ngx_int_t ngx_http_process_request_header(ngx_http_request_t *r);
+#endif
 void ngx_http_process_request(ngx_http_request_t *r);
 void ngx_http_update_location_config(ngx_http_request_t *r);
 void ngx_http_handler(ngx_http_request_t *r);
